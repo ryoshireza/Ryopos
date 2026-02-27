@@ -297,16 +297,35 @@ footer{position:relative;z-index:1;border-top:1px solid var(--border);padding:3.
           <input type="tel" id="regPhone" placeholder="09xxxxxxxxx">
         </div>
       </div>
-      <div class="form-group">
-        <label>ایمیل</label>
-        <input type="email" id="regEmail" placeholder="example@email.com">
+      <div class="form-row">
+        <div class="form-group">
+          <label>ایمیل</label>
+          <input type="email" id="regEmail" placeholder="example@email.com">
+        </div>
+        <div class="form-group">
+          <label>کد ملی</label>
+          <input type="text" id="regNationalId" placeholder="0123456789" maxlength="10">
+        </div>
       </div>
       <div class="form-group">
         <label>رمز عبور</label>
         <input type="password" id="regPass" placeholder="حداقل ۸ کاراکتر">
         <div class="form-error" id="registerError"></div>
       </div>
-      <button class="btn btn-gold" style="width:100%;justify-content:center;padding:.85rem" id="registerBtn" onclick="doRegister()">ایجاد حساب رایگان</button>
+      <button class="btn btn-gold" style="width:100%;justify-content:center;padding:.85rem" id="registerBtn" onclick="doRegister()">ارسال کد تایید</button>
+
+    <!-- Verify Email Step -->
+    <div id="verifyStep" style="display:none;margin-top:1.5rem">
+      <div style="background:rgba(200,131,42,0.08);border:1px solid rgba(200,131,42,0.25);border-radius:10px;padding:1.2rem;margin-bottom:1rem;font-size:.88rem;color:var(--text2);text-align:center">
+        📧 کد ۶ رقمی به ایمیل شما ارسال شد
+      </div>
+      <div class="form-group">
+        <label>کد تایید</label>
+        <input type="text" id="verifyCode" placeholder="کد ۶ رقمی را وارد کنید" maxlength="6" style="text-align:center;letter-spacing:8px;font-size:1.2rem">
+        <div class="form-error" id="verifyError"></div>
+      </div>
+      <button class="btn btn-gold" style="width:100%;justify-content:center;padding:.85rem" id="verifyBtn" onclick="doVerify()">تایید و ثبت‌نام</button>
+    </div>
     </div>
   </div>
 </div>
@@ -680,31 +699,55 @@ async function doLogin() {
 }
 
 async function doRegister() {
-  const name  = document.getElementById('regName').value.trim();
-  const phone = document.getElementById('regPhone').value.trim();
-  const email = document.getElementById('regEmail').value.trim();
-  const pass  = document.getElementById('regPass').value;
-  const btn   = document.getElementById('registerBtn');
-  const err   = document.getElementById('registerError');
+  const name       = document.getElementById('regName').value.trim();
+  const phone      = document.getElementById('regPhone').value.trim();
+  const email      = document.getElementById('regEmail').value.trim();
+  const nationalId = document.getElementById('regNationalId').value.trim();
+  const pass       = document.getElementById('regPass').value;
+  const btn        = document.getElementById('registerBtn');
+  const err        = document.getElementById('registerError');
 
-  if (!name || !phone || !email || !pass) { showErr(err, 'لطفاً همه فیلدها را پر کنید'); return; }
+  if (!name || !phone || !email || !nationalId || !pass) { showErr(err, 'لطفاً همه فیلدها را پر کنید'); return; }
+  if (nationalId.length !== 10 || !/^\d+$/.test(nationalId)) { showErr(err, 'کد ملی باید ۱۰ رقم باشد'); return; }
   if (pass.length < 8) { showErr(err, 'رمز عبور باید حداقل ۸ کاراکتر باشد'); return; }
 
-  btn.innerHTML = '<span class="spinner"></span> در حال ثبت‌نام...';
+  btn.innerHTML = '<span class="spinner"></span> در حال ارسال کد...';
   btn.disabled = true;
 
   try {
-    const data = await api('/auth/register', 'POST', { fullname: name, phone, email, password: pass });
+    await api('/auth/register', 'POST', { fullname: name, phone, email, national_id: nationalId, password: pass });
+    document.getElementById('verifyStep').style.display = 'block';
+    btn.style.display = 'none';
+    toast('📧 کد تایید به ایمیل شما ارسال شد', 'success');
+  } catch (e) {
+    showErr(err, e.message);
+    btn.innerHTML = 'ارسال کد تایید';
+    btn.disabled = false;
+  }
+}
+
+async function doVerify() {
+  const email = document.getElementById('regEmail').value.trim();
+  const code  = document.getElementById('verifyCode').value.trim();
+  const btn   = document.getElementById('verifyBtn');
+  const err   = document.getElementById('verifyError');
+
+  if (!code || code.length !== 6) { showErr(err, 'کد ۶ رقمی را وارد کنید'); return; }
+
+  btn.innerHTML = '<span class="spinner"></span> در حال تایید...';
+  btn.disabled = true;
+
+  try {
+    const data = await api('/auth/verify-email', 'POST', { email, code });
     authToken = data.token;
     localStorage.setItem('ryopos_token', authToken);
     currentUser = { fullname: data.fullname };
     setUserNav(data.fullname);
     closeModal('authOverlay');
-    toast(`حساب ایجاد شد! خوش آمدید ${name.split(' ')[0]} 🎉`, 'success');
+    toast(`ثبت‌نام کامل شد! خوش آمدید ${data.fullname.split(' ')[0]} 🎉`, 'success');
   } catch (e) {
     showErr(err, e.message);
-  } finally {
-    btn.innerHTML = 'ایجاد حساب رایگان';
+    btn.innerHTML = 'تایید و ثبت‌نام';
     btn.disabled = false;
   }
 }
