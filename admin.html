@@ -14,7 +14,7 @@ ADMIN_KEY         = os.getenv("ADMIN_KEY",         "Re48654172281")
 ZARINPAL_MERCHANT = os.getenv("ZARINPAL_MERCHANT", "your-merchant-id-here")
 CALLBACK_URL      = os.getenv("CALLBACK_URL",      "https://ryoshireza.github.io/Ryopos/")
 FRONTEND_URL      = os.getenv("FRONTEND_URL",      "https://ryoshireza.github.io/Ryopos/")
-DB_PATH           = os.getenv("DB_PATH",           "ryopos.db")
+DB_PATH           = os.getenv("DB_PATH",           "/app/data/ryopos.db")
 
 PRICES = {"basic": 5000000, "premium": 7000000}
 ZARINPAL_REQUEST = "https://api.zarinpal.com/pg/v4/payment/request.json"
